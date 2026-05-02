@@ -2913,3 +2913,97 @@ button {
   .budget-savings-row input { width: 100%; }
   .savings-stats-grid { grid-template-columns: 1fr; }
 }
+
+/* ─── GLOBAL TOUCH IMPROVEMENTS ──────────────────────────────────────────── */
+button, a, [role="button"], .habit-card, .mood-btn, .wish-card, .task-check {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.h-scroll, .mobile-bottom-nav, .wish-filters {
+  -webkit-overflow-scrolling: touch;
+}
+
+input[type="date"] {
+  -webkit-appearance: none;
+  min-height: 38px;
+}
+
+/* ─── 768px ADDITIONS ─────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .tab-content { gap: 1.5rem; }
+  .page-header { margin-bottom: 0.85rem; }
+
+  .sprint-header { padding: 12px 14px; }
+  .sprint-stats { flex-wrap: wrap; gap: 6px; flex-shrink: 1; }
+
+  .stat-card-val { font-size: 18px; }
+
+  .exp-summary-val { font-size: 17px; }
+  .exp-summary-label { font-size: 9.5px; }
+
+  .section-title { font-size: 14px; }
+}
+
+/* ─── 480px ADDITIONS ─────────────────────────────────────────────────────── */
+@media (max-width: 480px) {
+  /* Mood row — 5 buttons must fit on one line */
+  .mood-row { gap: 5px; }
+  .mood-btn { padding: 8px 4px; min-width: 0; flex: 1; }
+  .mood-label { font-size: 9px; }
+
+  /* Task input — full width when stacked */
+  .task-input { width: 100%; }
+  .task-select, .task-select.wide { width: 100%; flex: 1 1 auto; }
+
+  /* Expense values — prevent overflow with long INR amounts */
+  .exp-summary-val { font-size: 15px; letter-spacing: -0.3px; }
+  .exp-summary-card { padding: 10px 10px; }
+
+  /* Sprint add row select full width */
+  .sprint-add-row select { flex: 1 1 auto; }
+
+  /* Stat cards */
+  .stat-card-val { font-size: 17px; }
+  .stat-card { padding: 10px 8px; }
+
+  /* Form card */
+  .form-card { padding: 0.85rem; }
+
+  /* Reduce section gap */
+  .tab-content { gap: 1.2rem; }
+
+  /* Sprint header stack */
+  .sprint-header { flex-direction: column; gap: 8px; }
+  .sprint-stats { width: 100%; justify-content: flex-start; }
+
+  /* Kanban column padding */
+  .kanban-col { padding: 10px; }
+
+  /* Page sub text */
+  .page-sub { font-size: 11px; }
+}
+
+/* ─── 360px (very small phones) ──────────────────────────────────────────── */
+@media (max-width: 360px) {
+  .main-content { padding: 0.6rem 0.6rem 6rem; }
+  .page-title { font-size: 18px; }
+
+  .mobile-nav-btn { min-width: 36px; padding: 4px 2px; }
+  .mobile-nav-label { font-size: 8px; }
+
+  .habit-card { width: 118px; }
+
+  .stat-cards-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .stat-card-val { font-size: 15px; }
+
+  .exp-summary-val { font-size: 13px; }
+  .exp-summary-grid { gap: 6px; }
+
+  .mood-btn { padding: 6px 2px; }
+
+  .form-card { padding: 0.75rem; }
+  .form-grid { gap: 6px; }
+
+  .chat-panel { width: calc(100vw - 16px); }
+}
