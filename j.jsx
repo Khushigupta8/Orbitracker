@@ -535,6 +535,7 @@ export default function App({ user }) {
   const [expFilter, setExpFilter] = useState("all");
   const [showBudgetEditor, setShowBudgetEditor] = useState(false);
   const [budgetDraft, setBudgetDraft] = useState({});
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const applyBg = bg => {
     document.documentElement.style.setProperty("--app-bg", bg);
@@ -879,13 +880,20 @@ export default function App({ user }) {
           </div>
         </div>
         <div className="mobile-header-right">
-          <svg width={36} height={36} viewBox="0 0 96 96">
+          <svg width={34} height={34} viewBox="0 0 96 96">
             <circle cx={48} cy={48} r={38} fill="none" stroke="var(--ring-track)" strokeWidth={7}/>
             {pct>0&&<circle cx={48} cy={48} r={38} fill="none" stroke="#D4537E" strokeWidth={7}
               strokeDasharray={arc.toFixed(1)+" "+circ.toFixed(1)} strokeLinecap="round"
               transform="rotate(-90 48 48)"/>}
             <text x={48} y={48} textAnchor="middle" dominantBaseline="central" fill="#D4537E" fontSize={20} fontWeight={700}>{pct}%</text>
           </svg>
+          <button className="hamburger-btn" onClick={() => setDrawerOpen(true)} aria-label="Open menu">
+            <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round">
+              <line x1={3} y1={6} x2={21} y2={6}/>
+              <line x1={3} y1={12} x2={21} y2={12}/>
+              <line x1={3} y1={18} x2={21} y2={18}/>
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -2124,15 +2132,39 @@ export default function App({ user }) {
 
       </main>
 
-      {/* ── MOBILE BOTTOM NAV ───────────────────────────────────────────── */}
-      <nav className="mobile-bottom-nav">
-        {TABS.map(([k,l,c])=>(
-          <button key={k} onClick={()=>{setTab(k);setShowHF(false);setShowPF(false);setShowEF(false);}}
-            className={"mobile-nav-btn"+(tab===k?" active":"")} style={tab===k?{color:c}:{}}>
-            <span className="mobile-nav-label">{l}</span>
-          </button>
-        ))}
-      </nav>
+      {/* ── MOBILE DRAWER ───────────────────────────────────────────────── */}
+      {drawerOpen&&(
+        <div className="drawer-overlay" onClick={()=>setDrawerOpen(false)}>
+          <div className="drawer-panel" onClick={e=>e.stopPropagation()}>
+            <div className="drawer-head">
+              <BrandLogo size={28}/>
+              <div style={{flex:1}}>
+                <p className="drawer-brand-name">Orbit</p>
+                <p className="drawer-brand-sub">personal dashboard</p>
+              </div>
+              <button className="drawer-close" onClick={()=>setDrawerOpen(false)}>✕</button>
+            </div>
+            <div className="drawer-user">
+              <div className="user-avatar sm">{userName.charAt(0).toUpperCase()}</div>
+              <div>
+                <p style={{fontSize:13,fontWeight:600,color:"var(--text-primary)"}}>{userName}</p>
+                <p style={{fontSize:10,color:"var(--text-muted)"}}>{greeting}</p>
+              </div>
+            </div>
+            <nav className="drawer-nav">
+              {TABS.map(([k,l,c])=>(
+                <button key={k}
+                  onClick={()=>{setTab(k);setShowHF(false);setShowPF(false);setShowEF(false);setDrawerOpen(false);}}
+                  className={"drawer-nav-item"+(tab===k?" active":"")}
+                  style={tab===k?{color:c,background:c+"22",borderColor:c+"44"}:{}}>
+                  <span className="drawer-nav-dot" style={{background:tab===k?c:"var(--border-color)"}}/>
+                  {l}
+                </button>
+              ))}
+            </nav>
+          </div>
+        </div>
+      )}
 
       {/* ── THEME PICKER ────────────────────────────────────────────────── */}
       <ThemePicker themeId={themeId} onSelect={selectTheme}/>
