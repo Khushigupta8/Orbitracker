@@ -2,6 +2,9 @@
   "name": "orbit",
   "type": "module",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "concurrently -n \"server,vite\" -c \"cyan,magenta\" \"node --watch server.js\" \"vite\"",
     "dev:vite": "vite",
