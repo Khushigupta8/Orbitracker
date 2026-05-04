@@ -4,6 +4,9 @@
 -- 1. Add theme preference to profiles
 alter table profiles add column if not exists theme jsonb;
 
+-- 4. Time worked field on daily logs
+alter table daily_logs add column if not exists time_worked integer not null default 0;
+
 -- 2. Chat message history table
 create table if not exists chat_messages (
   id         uuid primary key default gen_random_uuid(),

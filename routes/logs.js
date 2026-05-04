@@ -20,7 +20,7 @@ router.put("/:date", async (req, res, next) => {
 
     // Upsert log record
     const { error: le } = await db.from("daily_logs").upsert(
-      { user_id: uid, date, wins: log.wins, blockers: log.blockers, plans: log.plans, mood: log.mood ?? null },
+      { user_id: uid, date, wins: log.wins, blockers: log.blockers, plans: log.plans, mood: log.mood ?? null, time_worked: log.timeWorked ?? 0 },
       { onConflict: "user_id,date" }
     );
     if (le) throw le;

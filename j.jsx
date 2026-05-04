@@ -527,6 +527,8 @@ export default function App({ user }) {
   const [wishTab, setWishTab] = useState("all");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickSel, setQuickSel]         = useState(new Set());
+  const [editingTimeW, setEditingTimeW] = useState(false);
+  const [timeWInput, setTimeWInput]     = useState("");
   const [quickCustom, setQuickCustom]   = useState([]);
   const [quickCustomIn, setQuickCustomIn] = useState("");
   const [taskIn, setTaskIn]   = useState("");
@@ -617,7 +619,7 @@ export default function App({ user }) {
     try { await toggleCompletion(user.id, id, ds, newVal); } catch(e){ console.error(e); }
   };
 
-  const todayLog  = logs[ds]||{wins:"",blockers:"",plans:"",tasks:[],mood:null,meetings:[],decisions:[]};
+  const todayLog  = logs[ds]||{wins:"",blockers:"",plans:"",tasks:[],mood:null,timeWorked:0,meetings:[],decisions:[]};
   const updateLog = async (patch) => {
     const newLog = {...todayLog, ...patch};
     setLogs(prev => ({...prev, [ds]: newLog}));
@@ -898,16 +900,46 @@ export default function App({ user }) {
         {/* Stats */}
         <div className="sidebar-stats">
           {[
-            {l:"tasks done",   v:`${doneT}/${todayLog.tasks.length}`, c:"#D4A054"},
-            {l:"active proj",  v:`${activeP}`,                        c:"#9B8EC4"},
-            {l:"time planned", v:fmtDur(totalM),                      c:"#6BAA84"},
-            {l:"today's mood", v:todayLog.mood!=null?<Icon name={MOODS[todayLog.mood]} size={18} color="#D4537E" strokeWidth={2}/>:"—", c:"#D4537E"},
+            {l:"tasks done",  v:`${doneT}/${todayLog.tasks.length}`, c:"#D4A054"},
+            {l:"active proj", v:`${activeP}`,                        c:"#9B8EC4"},
+            {l:"today's mood",v:todayLog.mood!=null?<Icon name={MOODS[todayLog.mood]} size={18} color="#D4537E" strokeWidth={2}/>:"—", c:"#D4537E"},
           ].map(s=>(
             <div key={s.l} className="sidebar-stat">
               <span className="stat-label">{s.l}</span>
               <span className="stat-val" style={{color:s.c}}>{s.v}</span>
             </div>
           ))}
+          {/* Editable time worked */}
+          <div className="sidebar-stat" style={{cursor:"pointer"}} onClick={()=>{if(!editingTimeW){setTimeWInput(todayLog.timeWorked?(todayLog.timeWorked/60).toFixed(1):"");setEditingTimeW(true);}}}>
+            <span className="stat-label">time worked</span>
+            {editingTimeW?(
+              <input
+                autoFocus
+                type="number" min="0" max="24" step="0.5"
+                value={timeWInput}
+                onChange={e=>setTimeWInput(e.target.value)}
+                onKeyDown={e=>{
+                  if(e.key==="Enter"||e.key==="Escape"){
+                    const v=parseFloat(timeWInput);
+                    if(!isNaN(v)&&v>=0&&v<=24) updateLog({timeWorked:Math.round(v*60)});
+                    setEditingTimeW(false);
+                  }
+                }}
+                onBlur={()=>{
+                  const v=parseFloat(timeWInput);
+                  if(!isNaN(v)&&v>=0&&v<=24) updateLog({timeWorked:Math.round(v*60)});
+                  setEditingTimeW(false);
+                }}
+                placeholder="hrs"
+                style={{width:52,fontSize:13,fontWeight:700,color:"#6BAA84",background:"transparent",border:"none",borderBottom:"1px solid #6BAA84",outline:"none",padding:"1px 2px"}}
+              />
+            ):(
+              <span className="stat-val" style={{color:"#6BAA84",display:"flex",alignItems:"center",gap:4}}>
+                {todayLog.timeWorked?fmtDur(todayLog.timeWorked):<span style={{opacity:0.4,fontSize:11}}>tap to log</span>}
+                <span style={{fontSize:9,opacity:0.45,fontWeight:400}}>/ {fmtDur(totalM)} planned</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Nav */}

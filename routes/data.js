@@ -50,7 +50,7 @@ router.get("/", async (req, res, next) => {
 
     const logs = {};
     (logR.data || []).forEach(r => {
-      logs[r.date] = { wins: r.wins || "", blockers: r.blockers || "", plans: r.plans || "", mood: r.mood, tasks: [], meetings: [], decisions: [] };
+      logs[r.date] = { wins: r.wins || "", blockers: r.blockers || "", plans: r.plans || "", mood: r.mood, timeWorked: r.time_worked || 0, tasks: [], meetings: [], decisions: [] };
     });
     (taskR.data || []).forEach(r => {
       if (!logs[r.date]) logs[r.date] = { wins: "", blockers: "", plans: "", mood: null, tasks: [], meetings: [], decisions: [] };
