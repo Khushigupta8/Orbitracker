@@ -24,7 +24,7 @@ router.get("/", async (req, res, next) => {
       db.from("daily_tasks").select("*").eq("user_id", uid).gte("date", d30),
       db.from("meetings").select("*").eq("user_id", uid).gte("date", d30),
       db.from("sprints").select("*, sprint_items(*)").eq("user_id", uid).order("created_at"),
-      db.from("profiles").select("username").eq("id", uid).single(),
+      db.from("profiles").select("username, theme").eq("id", uid).single(),
       db.from("wishes").select("*").eq("user_id", uid).order("created_at"),
       db.from("expenses").select("*").eq("user_id", uid).gte("date", d365).order("date", { ascending: false }),
       db.from("budgets").select("*").eq("user_id", uid).order("category"),
@@ -90,7 +90,7 @@ router.get("/", async (req, res, next) => {
       monthlyLimit: r.monthly_limit != null ? Number(r.monthly_limit) : 0,
     }));
 
-    res.json({ habits, comps, projects, logs, sprints, wishes, expenses, budgets, username: profR.data?.username || "User" });
+    res.json({ habits, comps, projects, logs, sprints, wishes, expenses, budgets, username: profR.data?.username || "User", theme: profR.data?.theme || null });
   } catch (e) { next(e); }
 });
 

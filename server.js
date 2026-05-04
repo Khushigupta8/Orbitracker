@@ -20,6 +20,7 @@ import wishesRoute     from "./routes/wishes.js";
 import logsRoute       from "./routes/logs.js";
 import profileRoute    from "./routes/profile.js";
 import chatRoute       from "./routes/chat.js";
+import chatHistoryRoute from "./routes/chatHistory.js";
 import expensesRoute   from "./routes/expenses.js";
 import budgetsRoute    from "./routes/budgets.js";
 
@@ -69,7 +70,8 @@ app.use("/api/sprints",     sprintsRoute);
 app.use("/api/wishes",      wishesRoute);
 app.use("/api/logs",        logsRoute);
 app.use("/api/profile",     profileRoute);
-app.use("/api/chat",        chatRoute);
+app.use("/api/chat",         chatRoute);
+app.use("/api/chat-history", chatHistoryRoute);
 app.use("/api/expenses",    expensesRoute);
 app.use("/api/budgets",     budgetsRoute);
 

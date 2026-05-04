@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "./supabase";
-import { loadAll, saveHabits as saveHabitsDB, toggleCompletion, saveProjects as saveProjectsDB, saveSprints as saveSprintsDB, saveWishes as saveWishesDB, updateDailyLog as updateDailyLogDB, saveProfile as saveProfileDB, saveExpenses as saveExpensesDB, saveBudgets as saveBudgetsDB } from "./api";
+import { loadAll, saveHabits as saveHabitsDB, toggleCompletion, saveProjects as saveProjectsDB, saveSprints as saveSprintsDB, saveWishes as saveWishesDB, updateDailyLog as updateDailyLogDB, saveProfile as saveProfileDB, saveExpenses as saveExpensesDB, saveBudgets as saveBudgetsDB, saveTheme as saveThemeDB, loadChatHistory, saveChatMessages, clearChatHistory } from "./api";
 import {
   AreaChart, Area, XAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, BarChart, Bar, YAxis, CartesianGrid,
@@ -93,6 +93,12 @@ const WISH_CATS = {
 const WISH_PRIO = {"must":{label:"must do",color:"#D4537E"},"want":{label:"really want",color:"#D4A054"},"dream":{label:"someday",color:"#9B8EC4"}};
 const BUY_CATS = ["shopping","tech","fashion","home","other"];
 const DREAM_CATS = ["travel","experience","skill","goal","creative","other"];
+const QUICK_BUY_PRESETS = [
+  {group:"Grocery",      emoji:"🥛",category:"shopping",items:["Milk","Eggs","Bread","Rice","Dal","Vegetables","Fruits","Oil","Sugar","Salt","Tea","Coffee","Onions","Tomatoes","Butter","Curd"]},
+  {group:"Personal Care",emoji:"🧴",category:"fashion", items:["Soap","Shampoo","Toothpaste","Face wash","Moisturizer","Deodorant","Razor","Conditioner","Hand wash"]},
+  {group:"Household",    emoji:"🏠",category:"home",    items:["Detergent","Dish soap","Toilet paper","Floor cleaner","Garbage bags","Phenyl","Broom","Napkins","Sponge"]},
+  {group:"Snacks",       emoji:"🍿",category:"shopping",items:["Biscuits","Chips","Chocolates","Namkeen","Juice","Cold drinks","Instant noodles","Popcorn","Dry fruits"]},
+];
 const BLANK_H = {name:"",category:"personal",startTime:"09:00",endTime:"10:00",days:[1,2,3,4,5]};
 const BLANK_P = {name:"",status:"on-track",progress:0,dueDate:"",ci:0,desc:"",stage:"planning",priority:"medium",milestones:[],developer:""};
 
@@ -312,6 +318,10 @@ function ClaudeChat({ habits, comps, projects, sprints, logs, todayH, todayC, to
   const wrapRef = useRef(null);
 
   useEffect(() => {
+    loadChatHistory().then(d => { if (d.messages?.length) setMessages(d.messages); }).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
@@ -411,7 +421,9 @@ Standup — Wins: ${todayLog.wins || "–"} | Blockers: ${todayLog.blockers || "
       });
       const data = await res.json();
       if (!res.ok) { setError(typeof data.error === "string" ? data.error : "Something went wrong"); setLoading(false); return; }
-      setMessages([...next, { role: "assistant", content: data.content?.[0]?.text || "Sorry, I couldn't generate a response." }]);
+      const assistantMsg = { role: "assistant", content: data.content?.[0]?.text || "Sorry, I couldn't generate a response." };
+      setMessages([...next, assistantMsg]);
+      saveChatMessages([userMsg, assistantMsg]).catch(() => {});
     } catch (e) {
       setError("Connection failed. Check your API key.");
     }
@@ -430,7 +442,7 @@ Standup — Wins: ${todayLog.wins || "–"} | Blockers: ${todayLog.blockers || "
               <p className="chat-header-title">orbit assistant</p>
               <p className="chat-header-sub">powered by Llama 3.3</p>
             </div>
-            <button className="chat-clear" onClick={() => {setMessages([]); setError(null);}}>clear</button>
+            <button className="chat-clear" onClick={() => {setMessages([]); setError(null); clearChatHistory().catch(() => {});}}>clear</button>
           </div>
 
           <div className="chat-messages">
@@ -513,6 +525,10 @@ export default function App({ user }) {
   const [wf, setWf]           = useState({title:"",category:"goal",priority:"want",notes:"",targetDate:"",done:false,type:"dream",price:""});
   const [wishFilter, setWishFilter] = useState("all");
   const [wishTab, setWishTab] = useState("all");
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickSel, setQuickSel]         = useState(new Set());
+  const [quickCustom, setQuickCustom]   = useState([]);
+  const [quickCustomIn, setQuickCustomIn] = useState("");
   const [taskIn, setTaskIn]   = useState("");
   const [taskPrio, setTaskPrio] = useState("medium");
   const [taskProj, setTaskProj] = useState("");
@@ -558,6 +574,12 @@ export default function App({ user }) {
         setWishes(d.wishes);
         setExpenses(d.expenses || []);
         setBudgets(d.budgets || []);
+        if (d.theme) {
+          setThemeId(d.theme.id); setThemeDark(d.theme.dark);
+          applyBg(d.theme.bg);
+          document.documentElement.setAttribute("data-theme", d.theme.dark?"dark":"light");
+          localStorage.setItem("rt:theme", JSON.stringify(d.theme));
+        }
       } catch(e) {
         console.error("load error", e);
         if (e.status === 401) { await supabase.auth.signOut(); return; }
@@ -571,6 +593,7 @@ export default function App({ user }) {
     applyBg(bg);
     document.documentElement.setAttribute("data-theme", dark?"dark":"light");
     localStorage.setItem("rt:theme", JSON.stringify({id,bg,dark}));
+    saveThemeDB({id,bg,dark}).catch(console.error);
   };
 
   const saveH    = async h => { setHabits(h);   try { await saveHabitsDB(user.id, h)   } catch(e){ console.error(e); } };
@@ -693,6 +716,27 @@ export default function App({ user }) {
   const submitW   = ()=>{ if(!wf.title.trim())return; if(wf.price!==""&&Number(wf.price)<0){alert("Price cannot be negative");return;} editWId?saveW(wishes.map(w=>w.id===editWId?{...w,...wf}:w)):saveW([...wishes,{...wf,id:"w"+Date.now(),createdAt:new Date().toISOString()}]); cancelW(); };
   const toggleWish = id => saveW(wishes.map(w=>w.id===id?{...w,done:!w.done}:w));
   const delWish    = id => saveW(wishes.filter(w=>w.id!==id));
+  const toggleQuickSel = key => setQuickSel(s=>{const n=new Set(s);n.has(key)?n.delete(key):n.add(key);return n;});
+  const addQuickCustom = ()=>{
+    const v=quickCustomIn.trim();
+    if(!v||quickCustom.includes(v))return;
+    setQuickCustom(c=>[...c,v]);
+    setQuickCustomIn("");
+  };
+  const bulkAddW = ()=>{
+    if(!quickSel.size&&!quickCustom.length)return;
+    const now=Date.now();
+    const fromPresets=[...quickSel].map((key,i)=>{
+      const [gi,itemName]=key.split("||");
+      const preset=QUICK_BUY_PRESETS[Number(gi)];
+      return{id:"w"+(now+i),title:itemName,category:preset.category,priority:"want",notes:"",targetDate:"",done:false,type:"buy",price:"",createdAt:new Date().toISOString()};
+    });
+    const fromCustom=quickCustom.map((title,i)=>({id:"w"+(now+quickSel.size+i),title,category:"shopping",priority:"want",notes:"",targetDate:"",done:false,type:"buy",price:"",createdAt:new Date().toISOString()}));
+    saveW([...wishes,...fromPresets,...fromCustom]);
+    setQuickSel(new Set());
+    setQuickCustom([]);
+    setShowQuickAdd(false);
+  };
   const typeWishes = wishTab==="all"?wishes:wishTab==="buy"?wishes.filter(w=>(w.type||"dream")==="buy"):wishes.filter(w=>(w.type||"dream")==="dream");
   const filteredWishes = wishFilter==="all"?typeWishes:wishFilter==="done"?typeWishes.filter(w=>w.done):wishFilter==="active"?typeWishes.filter(w=>!w.done):typeWishes.filter(w=>w.category===wishFilter);
   const wishesDone = wishes.filter(w=>w.done).length;
@@ -926,7 +970,7 @@ export default function App({ user }) {
           {tab==="wishes"&&!showWF&&(
             <div style={{display:"flex",gap:6}}>
               <button className="primary-btn" style={{background:"rgba(224,124,195,0.12)",color:"#E07CC3",borderColor:"rgba(224,124,195,0.35)"}} onClick={()=>openAddW("dream")}>+ dream</button>
-              <button className="primary-btn" style={{background:"rgba(232,130,74,0.12)",color:"#E8824A",borderColor:"rgba(232,130,74,0.35)"}} onClick={()=>openAddW("buy")}>+ to buy</button>
+              <button className="primary-btn" style={{background:"rgba(232,130,74,0.1)",color:"#E8824A",borderColor:"rgba(232,130,74,0.35)"}} onClick={()=>{setShowQuickAdd(v=>!v);setWishTab("buy");setShowWF(false);}}>🛒 to buy</button>
             </div>
           )}
           {tab==="expenses"&&!showEF&&(
@@ -1425,8 +1469,68 @@ export default function App({ user }) {
               </div>
             )}
 
+            {/* Quick-add panel */}
+            {showQuickAdd&&(
+              <div className="quick-add-panel">
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                  <p style={{margin:0,fontWeight:600,fontSize:13,color:"#E8824A"}}>🛒 Add to Buy List</p>
+                  <div style={{display:"flex",gap:6,alignItems:"center"}}>
+                    {(quickSel.size+quickCustom.length)>0&&(
+                      <button className="save-btn" style={{fontSize:11,padding:"5px 14px",background:"#E8824A"}} onClick={bulkAddW}>
+                        + Add {quickSel.size+quickCustom.length} item{(quickSel.size+quickCustom.length)>1?"s":""}
+                      </button>
+                    )}
+                    <button className="ghost-btn" style={{fontSize:11,padding:"5px 10px"}} onClick={()=>{setShowQuickAdd(false);setQuickSel(new Set());setQuickCustom([]);setQuickCustomIn("");}}>close</button>
+                  </div>
+                </div>
+
+                {/* Custom item input */}
+                <div style={{display:"flex",gap:6,marginBottom:14}}>
+                  <input
+                    placeholder="Type anything else… press Enter to add"
+                    value={quickCustomIn}
+                    onChange={e=>setQuickCustomIn(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&addQuickCustom()}
+                    style={{flex:1,fontSize:12,padding:"7px 12px",borderRadius:8,border:"1px solid rgba(232,130,74,0.3)",background:"rgba(232,130,74,0.06)",color:"var(--text-primary)"}}
+                  />
+                  <button onClick={addQuickCustom} className="save-btn" style={{fontSize:12,padding:"7px 14px",background:"#E8824A"}}>+</button>
+                </div>
+                {quickCustom.length>0&&(
+                  <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+                    {quickCustom.map(item=>(
+                      <button key={item} onClick={()=>setQuickCustom(c=>c.filter(x=>x!==item))}
+                        className="quick-chip selected" title="Click to remove">
+                        {item} ×
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Preset categories */}
+                {QUICK_BUY_PRESETS.map((grp,gi)=>(
+                  <div key={gi} style={{marginBottom:12}}>
+                    <p style={{margin:"0 0 7px",fontSize:11,color:"var(--text-muted)",fontWeight:600,textTransform:"uppercase",letterSpacing:"0.05em"}}>{grp.emoji} {grp.group}</p>
+                    <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                      {grp.items.map(item=>{
+                        const key=gi+"||"+item;
+                        const sel=quickSel.has(key);
+                        const already=wishes.some(w=>w.title.toLowerCase()===item.toLowerCase()&&!w.done&&w.type==="buy");
+                        return(
+                          <button key={item} onClick={()=>!already&&toggleQuickSel(key)}
+                            className={"quick-chip"+(sel?" selected":"")+(already?" added":"")}
+                            title={already?"Already in your list":sel?"Click to deselect":"Click to select"}>
+                            {item}{already?" ✓":""}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {/* Wish cards */}
-            {filteredWishes.length===0&&!showWF&&<p className="empty-state">{wishes.length===0?"no wishes yet — start dreaming":"no items match this filter"}</p>}
+            {filteredWishes.length===0&&!showWF&&!showQuickAdd&&<p className="empty-state">{wishes.length===0?"no wishes yet — start dreaming":"no items match this filter"}</p>}
             <div className="wishes-grid">
               {filteredWishes.map(w=>{
                 const cat=WISH_CATS[w.category]||WISH_CATS.other;

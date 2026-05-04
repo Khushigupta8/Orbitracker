@@ -66,6 +66,10 @@ export async function saveProfile(_userId, username) {
   return request("PUT", "/profile", { username });
 }
 
+export async function saveTheme(theme) {
+  return request("PUT", "/profile", { theme });
+}
+
 // ── Expenses ──────────────────────────────────────────────────────────────────
 export async function saveExpenses(_userId, expenses) {
   return request("PUT", "/expenses", { expenses });
@@ -74,4 +78,17 @@ export async function saveExpenses(_userId, expenses) {
 // ── Budgets ───────────────────────────────────────────────────────────────────
 export async function saveBudgets(_userId, budgets) {
   return request("PUT", "/budgets", { budgets });
+}
+
+// ── Chat history ──────────────────────────────────────────────────────────────
+export async function loadChatHistory() {
+  return request("GET", "/chat-history");
+}
+
+export async function saveChatMessages(messages) {
+  return request("POST", "/chat-history", { messages });
+}
+
+export async function clearChatHistory() {
+  return request("DELETE", "/chat-history");
 }

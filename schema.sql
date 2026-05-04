@@ -7,8 +7,10 @@
 create table if not exists profiles (
   id         uuid primary key references auth.users on delete cascade,
   username   text not null default 'User',
+  theme      jsonb,
   created_at timestamptz default now()
 );
+alter table profiles add column if not exists theme jsonb;
 
 -- Habits
 create table if not exists habits (
@@ -154,6 +156,16 @@ create table if not exists budgets (
   unique (user_id, category)
 );
 
+-- Chat message history
+create table if not exists chat_messages (
+  id         uuid primary key default gen_random_uuid(),
+  user_id    uuid not null references auth.users on delete cascade,
+  role       text not null check (role in ('user', 'assistant')),
+  content    text not null,
+  created_at timestamptz default now()
+);
+create index if not exists chat_messages_user_created_idx on chat_messages(user_id, created_at desc);
+
 -- ── Row Level Security ────────────────────────────────────────────────────────
 alter table profiles         enable row level security;
 alter table habits           enable row level security;
@@ -168,6 +180,7 @@ alter table daily_tasks      enable row level security;
 alter table meetings         enable row level security;
 alter table expenses         enable row level security;
 alter table budgets          enable row level security;
+alter table chat_messages    enable row level security;
 
 -- Each user can only read/write their own rows
 -- Drops first so the script is safely re-runnable (CREATE POLICY has no IF NOT EXISTS)
@@ -184,6 +197,7 @@ drop policy if exists "own daily_tasks"       on daily_tasks;
 drop policy if exists "own meetings"          on meetings;
 drop policy if exists "own expenses"          on expenses;
 drop policy if exists "own budgets"           on budgets;
+drop policy if exists "own chat_messages"     on chat_messages;
 
 create policy "own profiles"          on profiles          for all using (auth.uid() = id);
 create policy "own habits"            on habits            for all using (auth.uid() = user_id);
@@ -198,6 +212,7 @@ create policy "own daily_tasks"       on daily_tasks       for all using (auth.u
 create policy "own meetings"          on meetings          for all using (auth.uid() = user_id);
 create policy "own expenses"          on expenses          for all using (auth.uid() = user_id);
 create policy "own budgets"           on budgets           for all using (auth.uid() = user_id);
+create policy "own chat_messages"     on chat_messages     for all using (auth.uid() = user_id);
 
 -- ── Auto-create profile on signup ────────────────────────────────────────────
 create or replace function handle_new_user()

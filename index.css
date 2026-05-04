@@ -1568,6 +1568,45 @@ button {
   font-weight: 700;
 }
 
+/* ─── QUICK ADD ESSENTIALS ────────────────────────────────────────────────── */
+.quick-add-panel {
+  background: rgba(232, 130, 74, 0.04);
+  border: 1px solid rgba(232, 130, 74, 0.18);
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 14px;
+}
+
+.quick-chip {
+  padding: 5px 13px;
+  border-radius: 20px;
+  border: 1px solid rgba(232, 130, 74, 0.22);
+  background: rgba(232, 130, 74, 0.06);
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  line-height: 1.4;
+}
+
+.quick-chip:hover:not(.added) {
+  background: rgba(232, 130, 74, 0.14);
+  border-color: rgba(232, 130, 74, 0.45);
+}
+
+.quick-chip.selected {
+  background: rgba(232, 130, 74, 0.2);
+  border-color: #E8824A;
+  color: #E8824A;
+  font-weight: 600;
+}
+
+.quick-chip.added {
+  opacity: 0.38;
+  cursor: default;
+  text-decoration: line-through;
+}
+
 /* ─── MANAGE ──────────────────────────────────────────────────────────────── */
 .habits-grid {
   display: grid;
