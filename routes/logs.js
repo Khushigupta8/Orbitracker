@@ -11,6 +11,10 @@ router.put("/:date", async (req, res, next) => {
     const uid = req.user.id;
     const date = req.params.date;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: "Invalid date format" });
+    const [dy, dm, dd] = date.split("-").map(Number);
+    const parsed = new Date(dy, dm - 1, dd);
+    if (parsed.getFullYear() !== dy || parsed.getMonth() + 1 !== dm || parsed.getDate() !== dd)
+      return res.status(400).json({ error: "Invalid date" });
 
     const log = validate(LogSchema, req.body);
 

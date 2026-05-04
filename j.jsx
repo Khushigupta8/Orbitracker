@@ -346,7 +346,7 @@ function ClaudeChat({ habits, comps, projects, sprints, logs, todayH, todayC, to
     const topCats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 5);
     const savedBy = {};
     monthExp.filter(e => e.type === "savings").forEach(e => { savedBy[e.category] = (savedBy[e.category] || 0) + Number(e.amount || 0); });
-    const SAVINGS = "__savings__";
+    const SAVINGS = SAVINGS_KEY;
     const goal = Number((budgets || []).find(b => b.category === SAVINGS)?.monthlyLimit || 0);
     const budgetLines = (budgets || []).filter(b => b.category !== SAVINGS).map(b => {
       const s = byCat[b.category] || 0;
@@ -525,7 +525,7 @@ export default function App({ user }) {
   const [expandProjId, setExpandProjId] = useState(null);
   const [devFilter, setDevFilter]       = useState("all");
   const [editingName, setEditingName] = useState(false);
-  const [nameInput, setNameInput] = useState("Khushi");
+  const [nameInput, setNameInput] = useState("");
   const [expenses, setExpenses] = useState([]);
   const [budgets, setBudgets]   = useState([]);
   const [showEF, setShowEF]     = useState(false);
@@ -558,7 +558,10 @@ export default function App({ user }) {
         setWishes(d.wishes);
         setExpenses(d.expenses || []);
         setBudgets(d.budgets || []);
-      } catch(e) { console.error("load error", e); }
+      } catch(e) {
+        console.error("load error", e);
+        if (e.status === 401) { await supabase.auth.signOut(); return; }
+      }
       setReady(true);
     })();
   }, []);
@@ -628,9 +631,12 @@ export default function App({ user }) {
 
   const getStreak = habitId => {
     let streak=0,d=new Date();
+    const h=habits.find(x=>x.id===habitId); if(!h)return 0;
+    // if today is scheduled but not yet done, start counting from yesterday
+    const todayDstr=d.toISOString().split("T")[0];
+    if(h.days.includes(d.getDay())&&!comps[todayDstr]?.[habitId]) d.setDate(d.getDate()-1);
     for(let i=0;i<60;i++){
       const dstr=d.toISOString().split("T")[0],ddow=d.getDay();
-      const h=habits.find(x=>x.id===habitId); if(!h)break;
       if(!h.days.includes(ddow)){d.setDate(d.getDate()-1);continue;}
       if(comps[dstr]?.[habitId]){streak++;d.setDate(d.getDate()-1);}else break;
     }
@@ -658,7 +664,7 @@ export default function App({ user }) {
   const openAddH  = ()=>{setEditHId(null);setHf({...BLANK_H});setShowHF(true);};
   const openEditH = h=>{setEditHId(h.id);setHf({name:h.name,category:h.category,startTime:h.startTime,endTime:h.endTime,days:[...h.days]});setShowHF(true);};
   const cancelH   = ()=>{setShowHF(false);setEditHId(null);};
-  const submitH   = ()=>{ if(!hf.name.trim()||!hf.days.length)return; editHId?saveH(habits.map(h=>h.id===editHId?{...h,...hf}:h)):saveH([...habits,{...hf,id:Date.now().toString()}]); cancelH(); };
+  const submitH   = ()=>{ if(!hf.name.trim()||!hf.days.length)return; if(hf.endTime<=hf.startTime){alert("End time must be after start time");return;} editHId?saveH(habits.map(h=>h.id===editHId?{...h,...hf}:h)):saveH([...habits,{...hf,id:Date.now().toString()}]); cancelH(); };
   const toggleDay = i=>setHf(f=>({...f,days:f.days.includes(i)?f.days.filter(d=>d!==i):[...f.days,i].sort()}));
 
   const openAddP  = ()=>{setEditPId(null);setPf({...BLANK_P});setShowPF(true);};
@@ -676,6 +682,7 @@ export default function App({ user }) {
   const createSprint = () => {
     if(!sprintForm.name.trim())return;
     saveS([...sprints,{...sprintForm,id:"s"+Date.now(),items:[],completed:false}]);
+    setSprintForm({name:"Sprint 1",goal:"",startDate:todayStr(),endDate:"",items:[]});
     setShowSF(false);
   };
 
@@ -683,7 +690,7 @@ export default function App({ user }) {
   const openAddW  = (type="dream")=>{setEditWId(null);setWf({title:"",category:type==="buy"?"shopping":"goal",priority:"want",notes:"",targetDate:"",done:false,type,price:""});setShowWF(true);};
   const openEditW = w=>{setEditWId(w.id);setWf({title:w.title,category:w.category,priority:w.priority,notes:w.notes||"",targetDate:w.targetDate||"",done:w.done,type:w.type||"dream",price:w.price||""});setShowWF(true);};
   const cancelW   = ()=>{setShowWF(false);setEditWId(null);};
-  const submitW   = ()=>{ if(!wf.title.trim())return; editWId?saveW(wishes.map(w=>w.id===editWId?{...w,...wf}:w)):saveW([...wishes,{...wf,id:"w"+Date.now(),createdAt:new Date().toISOString()}]); cancelW(); };
+  const submitW   = ()=>{ if(!wf.title.trim())return; if(wf.price!==""&&Number(wf.price)<0){alert("Price cannot be negative");return;} editWId?saveW(wishes.map(w=>w.id===editWId?{...w,...wf}:w)):saveW([...wishes,{...wf,id:"w"+Date.now(),createdAt:new Date().toISOString()}]); cancelW(); };
   const toggleWish = id => saveW(wishes.map(w=>w.id===id?{...w,done:!w.done}:w));
   const delWish    = id => saveW(wishes.filter(w=>w.id!==id));
   const typeWishes = wishTab==="all"?wishes:wishTab==="buy"?wishes.filter(w=>(w.type||"dream")==="buy"):wishes.filter(w=>(w.type||"dream")==="dream");
@@ -786,7 +793,7 @@ export default function App({ user }) {
   };
 
   const hour = new Date().getHours();
-  const greeting = hour<12?"Good morning":"Good afternoon";
+  const greeting = hour<12?"Good morning":hour<17?"Good afternoon":"Good evening";
   const dateLabel = new Date().toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});
   const activeP = projects.filter(p=>p.status!=="done").length;
   const circ = 2*Math.PI*38, arc = (pct/100)*circ;

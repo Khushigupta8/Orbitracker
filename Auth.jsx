@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 
 export default function Auth() {
-  const [mode, setMode]       = useState("signin"); // "signin" | "signup"
+  const [mode, setMode]       = useState("signin"); // "signin" | "signup" | "reset"
   const [email, setEmail]     = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -17,7 +17,8 @@ export default function Auth() {
 
   const submit = async e => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim()) return;
+    if (mode !== "reset" && !password.trim()) return;
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -26,6 +27,12 @@ export default function Auth() {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
       else setMessage("Check your email to confirm your account, then sign in.");
+    } else if (mode === "reset") {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin,
+      });
+      if (error) setError(error.message);
+      else setMessage("Password reset email sent. Check your inbox.");
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
@@ -76,7 +83,7 @@ export default function Auth() {
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: "#1a1a2e", letterSpacing: -0.3 }}>Orbit</h1>
           <p style={{ margin: "2px 0 0", fontSize: 11, color: "#aaa", letterSpacing: 1.5, textTransform: "uppercase" }}>your life, in one place</p>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "#888" }}>
-            {mode === "signin" ? "Welcome back" : "Create your account"}
+            {mode === "signin" ? "Welcome back" : mode === "signup" ? "Create your account" : "Reset your password"}
           </p>
         </div>
 
@@ -102,26 +109,37 @@ export default function Auth() {
             />
           </div>
 
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: "#555", display: "block", marginBottom: 5 }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              style={{
-                width: "100%", boxSizing: "border-box",
-                padding: "10px 12px", borderRadius: 10,
-                border: "1px solid rgba(212,83,126,0.25)",
-                background: "rgba(255,255,255,0.8)",
-                fontSize: 14, color: "#1a1a2e",
-                outline: "none",
-              }}
-            />
-          </div>
+          {mode !== "reset" && (
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#555", display: "block", marginBottom: 5 }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                style={{
+                  width: "100%", boxSizing: "border-box",
+                  padding: "10px 12px", borderRadius: 10,
+                  border: "1px solid rgba(212,83,126,0.25)",
+                  background: "rgba(255,255,255,0.8)",
+                  fontSize: 14, color: "#1a1a2e",
+                  outline: "none",
+                }}
+              />
+              {mode === "signin" && (
+                <button
+                  type="button"
+                  onClick={() => { setMode("reset"); setError(null); setMessage(null); }}
+                  style={{ background: "none", border: "none", color: "#D4537E", fontSize: 11, cursor: "pointer", marginTop: 4, padding: 0, float: "right" }}
+                >
+                  Forgot password?
+                </button>
+              )}
+            </div>
+          )}
 
           {error && (
             <p style={{ margin: 0, fontSize: 12, color: "#D4537E", background: "rgba(212,83,126,0.08)", padding: "8px 12px", borderRadius: 8 }}>
@@ -145,14 +163,14 @@ export default function Auth() {
               marginTop: 4,
             }}
           >
-            {loading ? "..." : mode === "signin" ? "Sign in" : "Create account"}
+            {loading ? "..." : mode === "signin" ? "Sign in" : mode === "signup" ? "Create account" : "Send reset email"}
           </button>
         </form>
 
         <p style={{ textAlign: "center", marginTop: "1.5rem", fontSize: 13, color: "#888" }}>
-          {mode === "signin" ? "Don't have an account? " : "Already have an account? "}
+          {mode === "reset" ? "Remember your password? " : mode === "signin" ? "Don't have an account? " : "Already have an account? "}
           <button
-            onClick={() => { setMode(m => m === "signin" ? "signup" : "signin"); setError(null); setMessage(null); }}
+            onClick={() => { setMode(m => m === "signup" ? "signin" : m === "reset" ? "signin" : "signup"); setError(null); setMessage(null); }}
             style={{ background: "none", border: "none", color: "#D4537E", fontWeight: 600, cursor: "pointer", fontSize: 13 }}
           >
             {mode === "signin" ? "Sign up" : "Sign in"}

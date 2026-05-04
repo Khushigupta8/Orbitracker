@@ -29,7 +29,10 @@ router.put("/", async (req, res, next) => {
     }
 
     const ids = expenses.map(e => e.id);
-    const { data: existing } = await db.from("expenses").select("id").eq("user_id", uid);
+    // Only delete within the 365-day window the client manages — avoids wiping older history
+    const since365 = new Date(); since365.setDate(since365.getDate() - 365);
+    const d365 = since365.toISOString().split("T")[0];
+    const { data: existing } = await db.from("expenses").select("id").eq("user_id", uid).gte("date", d365);
     const toDelete = (existing || []).map(r => r.id).filter(id => !ids.includes(id));
     if (toDelete.length > 0) {
       await db.from("expenses").delete().in("id", toDelete);

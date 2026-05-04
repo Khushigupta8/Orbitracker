@@ -19,7 +19,9 @@ async function request(method, path, body) {
   const data = await res.json();
   if (!res.ok) {
     const detail = data.details ? " — " + (Array.isArray(data.details) ? data.details.map(d => `${(d.path||[]).join(".")}: ${d.message}`).join("; ") : JSON.stringify(data.details)) : "";
-    throw new Error((data.error || `Request failed: ${res.status}`) + detail);
+    const err = new Error((data.error || `Request failed: ${res.status}`) + detail);
+    err.status = res.status;
+    throw err;
   }
   return data;
 }

@@ -2544,14 +2544,14 @@ button {
 /* ─── CHAT RESPONSIVE ─────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
   .chat-fab-wrap {
-    bottom: 72px;
+    bottom: 24px;
     left: 16px;
   }
 
   .chat-panel {
     width: calc(100vw - 32px);
     max-height: 60vh;
-    bottom: 62px;
+    bottom: 76px;
     left: 0;
   }
 }
