@@ -30,11 +30,24 @@ const isProd = process.env.NODE_ENV === "production";
 const app = express();
 
 // ── Security & utility middleware ─────────────────────────────────────────────
-app.use(helmet({ contentSecurityPolicy: false })); // CSP managed by frontend build
+app.use(helmet({
+  contentSecurityPolicy: isProd ? {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", process.env.SUPABASE_URL || "", "https://api.groq.com"],
+      fontSrc: ["'self'", "data:"],
+      objectSrc: ["'none'"],
+      frameAncestors: ["'none'"],
+    },
+  } : false,
+}));
 app.use(compression());
 app.use(cors({
   origin: isProd
-    ? (process.env.FRONTEND_URL || false)
+    ? ((process.env.FRONTEND_URL || "").replace(/\/$/, "") || false)
     : ["http://localhost:5173", "http://localhost:5174"],
   credentials: true,
 }));
