@@ -15,11 +15,11 @@ A personal productivity dashboard to manage your habits, projects, expenses, and
 
 ## Tech Stack
 
-- **Frontend** — React 18, Vite, Recharts
-- **Backend** — Node.js, Express
+- **Framework** — Next.js (App Router), React 19, Recharts
+- **Backend** — Next.js Route Handlers (`app/api/*`)
 - **Database & Auth** — Supabase (PostgreSQL)
 - **AI** — Groq API
-- **Deployment** — Render
+- **Deployment** — Vercel
 
 ## Getting Started
 
@@ -38,17 +38,17 @@ npm install
 
 ### 3. Set up environment variables
 
-Copy `.env.example` to `.env` and fill in your keys:
+Copy `.env.example` to `.env.local` and fill in your keys:
 
 ```bash
-cp .env.example .env
+cp .env.example .env.local
 ```
 
 | Variable | Where to get it |
 |---|---|
 | `GROQ_API_KEY` | console.groq.com |
-| `VITE_SUPABASE_URL` | Supabase → Settings → API |
-| `VITE_SUPABASE_ANON_KEY` | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Settings → API |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Settings → API |
 | `SUPABASE_URL` | Supabase → Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Settings → API |
 
@@ -58,13 +58,11 @@ cp .env.example .env
 npm run dev
 ```
 
-App runs at `http://localhost:5173` (frontend) and `http://localhost:3001` (API).
+App and API both run at `http://localhost:3000`.
 
-## Deployment
+## Deployment (Vercel)
 
-Deployed on [Render](https://render.com) as a single Node.js web service.
-
-- **Build command:** `npm install && npm run build`
-- **Start command:** `npm start`
-
-Set all environment variables from `.env` in the Render dashboard before deploying.
+1. Push the repo to GitHub and import it at [vercel.com/new](https://vercel.com/new) (framework preset: Next.js, no config needed).
+2. Add these environment variables in Project Settings → Environment Variables:
+   `GROQ_API_KEY`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`.
+3. Deploy. In Supabase → Authentication → URL Configuration, add your Vercel URL to the allowed redirect URLs (needed for Google sign-in).
